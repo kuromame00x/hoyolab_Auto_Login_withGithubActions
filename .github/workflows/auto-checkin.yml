@@ -1,0 +1,28 @@
+# .github/workflows/auto-checkin.yml
+name: Auto Check-In
+
+on:
+  schedule:
+    - cron: '0 16 * * *'  # 日本時間1:00 (UTC+9 = UTC-15)
+  workflow_dispatch:      # 手動実行も可
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run hoyolab.py
+        env:
+          LTUID: ${{ secrets.LTUID }}
+          LTOKEN: ${{ secrets.LTOKEN }}
+        run: python src/hoyolab.py
