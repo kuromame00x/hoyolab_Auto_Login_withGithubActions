@@ -11,13 +11,13 @@
 
 GitHub 上で本リポジトリをフォークしてください：
 
-👉 [Fork this repository](https://github.com/kuromame00x/hoyolab_Auto_Login_withGithubActions)
-
 ---
 
 ### 2. Cookie・トークンを取得する
 
-ローカルで以下のスクリプトを実行し、必要なトークン情報を取得します。
+ローカルで以下のファイルを実行し、必要なトークン情報を取得します。
 
 ```bash
-python src/get_cookie.py
+python dist/get_cookie.exe
+
+
