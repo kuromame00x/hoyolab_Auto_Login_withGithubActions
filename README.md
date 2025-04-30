@@ -93,11 +93,3 @@ C:\Users\<あなたのユーザー名>\AppData\Local\Google\Chrome\User Data\hoy
 
 `Actions` タブに移動し、ワークフローが正しく動作しているか確認できます。  
 `Run workflow` を手動実行して、動作確認することも可能です。
-
----
-```
-
----  
-
-必要に応じてこのファイルを `README.md` に保存し、GitHub 上に push してください。  
-他にも `.exe` の設置先パス、実行例、スクリーンショットの追加があればご相談ください。
