@@ -1,5 +1,3 @@
----
-
 # HoYoLAB Auto Login with GitHub Actions
 
 このリポジトリは、HoYoLAB（原神 / スターレイル）のデイリーチェックインを GitHub Actions で自動化するスクリプトです。  
