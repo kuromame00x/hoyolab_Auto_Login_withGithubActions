@@ -1,12 +1,16 @@
+---
+
 # HoYoLAB Auto Login with GitHub Actions
 
-このリポジトリは、HoYoLAB（原神 / スターレイル）のデイリーチェックインを GitHub Actions で自動化するスクリプトです。
-崩壊3rdとZZZはAPIが対応していないため、APIとは別のチェックイン方法で開発中です。
+このリポジトリは、HoYoLAB（原神 / スターレイル）のデイリーチェックインを GitHub Actions で自動化するスクリプトです。  
+※ 崩壊3rdとゼンレスゾーンゼロ（ZZZ）は現在API非対応のため、別途対応中です。
 
-```
-.github/workflows/auto-checkin.yml
-```
-内の実行時間が7:00に設定されているので、必要に応じて変更してください。
+---
+
+## ✅ 自動実行のタイミング
+
+`.github/workflows/auto-checkin.yml` の中で、毎日 7:00 JST に実行されるよう設定されています。  
+必要に応じて `cron` を編集してください。
 
 ---
 
@@ -14,28 +18,46 @@
 
 ### 1. このリポジトリをフォークする
 
-GitHub 上で本リポジトリをフォークしてください：
+GitHub 上で本リポジトリ [`hoyolab_Auto_Login_withGithubActions`](https://github.com/kuromame00x/hoyolab_Auto_Login_withGithubActions) をフォークしてください。
+
+---
+
+了解しました。以下のように **手順 2-2 に「初回ログインが必要な場合がある」旨の注意書き**を追記した、修正版 `README.md` の該当部分をご確認ください：
 
 ---
 
 ### 2. Cookie・トークンを取得する
 
-ローカルで以下のファイルを実行し、必要なトークン情報を取得します。
+#### ✅ 2-1. `get_cookie.exe` を入手する
 
-```bash
-python dist/get_cookie.exe
+- このリポジトリを `git clone` または ZIP でダウンロードして展開
+- フォルダ内の `dist/get_cookie.exe` を実行します
+
+#### ✅ 2-2. Chrome プロファイルの準備（初回のみ）
+
+`get_cookie.exe` は、Chrome の指定プロファイルを使って HoYoLAB にアクセスし、ログイン状態の Cookie を取得します。
+
+> ⚠️ 初回実行時またはプロファイルが未ログイン状態の場合、**ブラウザが自動で起動し、手動ログインが必要です**。
+
+- ログイン画面が表示された場合は、アカウントでログインしてください
+- ログイン完了後、ターミナルに戻って Enter を押すと Cookie 情報が `.env` に出力されます
+
+Chrome のユーザーデータパスの例：
 ```
+C:\Users\<あなたのユーザー名>\AppData\Local\Google\Chrome\User Data\hoyolab
+```
+---
+
+このように、**自動ログインではないことと手動ログインが必要なケース**を明記しています。必要に応じて `.env` の書き込み場所や `--user-data-dir` の変更方法も補足できますので、お申し付けください。
 ---
 
 ## ❗ トークンが取得できない場合の手動方法
 
-`get_cookie.exe` を実行しても `.env` にトークンが正しく書き込まれない場合は、以下の手順で **開発者ツールからトークンを取得し、GitHub Secrets に直接登録**してください。
+`.env` にトークンが正しく書き込まれない場合は、以下の手順で **開発者ツールからトークンを取得し、GitHub Secrets に直接登録**してください。
 
 ---
 
 ### ✅ ステップ 1：HoYoLAB チェックインページを開く
-
-以下のURLをブラウザで開いて、ログイン状態にします：
 
 [https://act.hoyolab.com/bbs/event/signin/hkrpg/index.html?act_id=e202303301540311](https://act.hoyolab.com/bbs/event/signin/hkrpg/index.html?act_id=e202303301540311)
 
@@ -45,13 +67,13 @@ python dist/get_cookie.exe
 
 1. `F12` キーを押す（または右クリック → 検証）
 2. `Application` タブを選択
-3. 左メニュー → `Storage` > `Cookies` > `https://*.hoyolab.com` をクリック
+3. 左メニューの `Storage > Cookies > https://*.hoyolab.com` を開く
 
 ---
 
-### ✅ ステップ 3：上部の検索バーで `v2` と入力
+### ✅ ステップ 3：Cookie 一覧をフィルターする
 
-以下の3つのトークンが表示されるはずです：
+上部の検索欄に `v2` と入力すると、以下の3つのクッキーが見つかるはずです：
 
 | Cookie名          | 説明                     |
 |-------------------|--------------------------|
@@ -63,15 +85,26 @@ python dist/get_cookie.exe
 
 ### ✅ ステップ 4：GitHub にトークンを登録する
 
-1. フォーク先リポジトリの `Settings > Secrets and variables > Actions` に移動
-2. `New repository secret` を3つ作成：
+1. フォークしたリポジトリの `Settings > Secrets and variables > Actions` に移動
+2. `New repository secret` をクリックして、以下3つを追加：
 
-| Secret Name        | 値（コピーした中身）           |
-|---------------------|----------------------------------|
-| `LTUID`             | `ltuid_v2` の値（数値のみ）      |
-| `LTOKEN`            | `ltoken_v2` の値                 |
-| `COOKIE_TOKEN_V2`   | `cookie_token_v2` の値           |
-
-
+| Secret Name        | 値（Cookieの中身）          |
+|---------------------|-----------------------------|
+| `LTUID`             | `ltuid_v2` の値（数値）     |
+| `LTOKEN`            | `ltoken_v2` の値            |
+| `COOKIE_TOKEN_V2`   | `cookie_token_v2` の値      |
 
 ---
+
+## ✅ 自動チェックインの確認
+
+`Actions` タブに移動し、ワークフローが正しく動作しているか確認できます。  
+`Run workflow` を手動実行して、動作確認することも可能です。
+
+---
+```
+
+---  
+
+必要に応じてこのファイルを `README.md` に保存し、GitHub 上に push してください。  
+他にも `.exe` の設置先パス、実行例、スクリーンショットの追加があればご相談ください。
