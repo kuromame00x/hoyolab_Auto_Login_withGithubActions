@@ -2,10 +2,22 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import os
 
-# Chrome 設定
-options = Options()
-options.add_argument("--user-data-dir=C:\\Users\\hukuc\\AppData\\Local\\Google\\Chrome\\User Data\\hoyolab")
-options.add_argument("--profile-directory=Default")
+# プロファイル設定ファイルを読み込んで ChromeOptions に反映
+def load_chrome_options_from_txt(path):
+    options = Options()
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as f:
+            for line in f:
+                if '=' in line:
+                    key, value = line.strip().split('=', 1)
+                    expanded_value = os.path.expandvars(value)  # 環境変数を展開
+                    options.add_argument(f"--{key}={expanded_value}")
+    else:
+        print(f"{path} が見つかりません")
+    return options
+
+# 設定ファイルからChromeオプションを読み込む
+options = load_chrome_options_from_txt("chrome_profile.txt")
 
 # ChromeDriver 起動
 driver = webdriver.Chrome(options=options)
