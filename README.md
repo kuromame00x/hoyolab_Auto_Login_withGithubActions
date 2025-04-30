@@ -1,6 +1,7 @@
 # HoYoLAB Auto Login with GitHub Actions
 
-このリポジトリは、HoYoLAB（原神 / スターレイル / 崩壊3rd / ZZZ）のデイリーチェックインを GitHub Actions で自動化するスクリプトです。
+このリポジトリは、HoYoLAB（原神 / スターレイル）のデイリーチェックインを GitHub Actions で自動化するスクリプトです。
+崩壊3rdとZZZはAPIが対応していないため開発中です。
 
 ---
 
