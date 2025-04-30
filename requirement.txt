@@ -1,1 +1,2 @@
+genshin
 python-dotenv
