@@ -22,10 +22,6 @@ GitHub 上で本リポジトリ [`hoyolab_Auto_Login_withGithubActions`](https:/
 
 ---
 
-了解しました。以下のように **手順 2-2 に「初回ログインが必要な場合がある」旨の注意書き**を追記した、修正版 `README.md` の該当部分をご確認ください：
-
----
-
 ### 2. Cookie・トークンを取得する
 
 #### ✅ 2-1. `get_cookie.exe` を入手する
