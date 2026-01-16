@@ -27,14 +27,20 @@ def checkin(game_name: str, act_id: str, url: str, signgame: str) -> None:
     payload = {"act_id": act_id}
     query = f"act_id={act_id}"
 
+    device_id = os.getenv("HOYOLAB_DEVICE_ID") or str(uuid.uuid4())
+    ltuid = os.getenv("LTUID") or ""
+    ltoken = os.getenv("LTOKEN") or ""
+    cookie_token = os.getenv("COOKIE_TOKEN_V2") or ""
+
     headers = {
-        "Cookie": f"ltuid_v2={os.getenv('LTUID')}; ltoken_v2={os.getenv('LTOKEN')}; cookie_token_v2={os.getenv('COOKIE_TOKEN_V2')};",
+        # include account_id_v2 for luna endpoints that validate account id explicitly
+        "Cookie": f"ltuid_v2={ltuid}; account_id_v2={ltuid}; ltoken_v2={ltoken}; cookie_token_v2={cookie_token};",
         "DS": generate_ds(payload, query),
         "x-rpc-client_type": "5",
         "x-rpc-app_version": "2.70.1",
         "x-rpc-language": "ja-jp",
         "x-rpc-signgame": signgame,
-        "x-rpc-device_id": str(uuid.uuid4()),
+        "x-rpc-device_id": device_id,
         "User-Agent": "okhttp/4.8.0",
         "Referer": "https://act.hoyolab.com",
         "Origin": "https://act.hoyolab.com",
