@@ -2,7 +2,7 @@ name: Auto Hoyolab Check-in
 
 on:
   schedule:
-    - cron: '0 22 * * *'  # 毎日07:00 JST（=22:00 UTC）
+    - cron: '0 16 * * *'  # 毎日01:00 JST（=16:00 UTC）
   workflow_dispatch:
 
 jobs:
