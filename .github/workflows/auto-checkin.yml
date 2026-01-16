@@ -25,9 +25,13 @@ jobs:
 
       - name: Create .env from repository variables
         run: |
-          echo "LTUID=${{ vars.LTUID }}" >> .env
-          echo "LTOKEN=${{ vars.LTOKEN }}" >> .env
-          echo "COOKIE_TOKEN_V2=${{ vars.COOKIE_TOKEN_V2 }}" >> .env
+          mkdir -p src
+          {
+            echo "LTUID=${{ vars.LTUID }}"
+            echo "LTOKEN=${{ vars.LTOKEN }}"
+            echo "COOKIE_TOKEN_V2=${{ vars.COOKIE_TOKEN_V2 }}"
+          } > src/.env
 
       - name: Run checkin script
-        run: python checking.py
+        working-directory: src
+        run: python checkin.py
