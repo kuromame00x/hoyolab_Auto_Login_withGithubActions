@@ -57,7 +57,7 @@ def checkin(game_name: str, act_id: str, url: str, signgame: str) -> None:
 games = [
     ("原神", "e202102251931481", "https://sg-hk4e-api.hoyolab.com/event/sol/sign", "hk4e"),  # Genshin
     ("崩壊スターレイル", "e202303301540311", "https://sg-public-api.hoyolab.com/event/luna/hkrpg/os/sign", "hkrpg"),  # Star Rail
-    ("崩壊3rd", "e202110291205111", "https://sg-public-api.hoyolab.com/event/luna/bh3/os/sign", "bh3"),  # Honkai Impact 3rd
+    ("崩壊3rd", "e202110291205111", "https://sg-public-api.hoyolab.com/event/maniSignIn/api/sign", "bh3"),  # Honkai Impact 3rd
     ("ゼンレスゾーンゼロ", "e202406031448091", "https://sg-public-api.hoyolab.com/event/luna/zzz/os/sign", "zzz"),  # Zenless Zone Zero
 ]
 
