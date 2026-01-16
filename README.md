@@ -7,7 +7,7 @@
 
 ## ✅ 自動実行のタイミング
 
-`.github/workflows/auto-checkin.yml` の中で、毎日 7:00 JST に実行されるよう設定されています。  
+`.github/workflows/auto-checkin.yml` の中で、毎日 1:00 JST に実行されるよう設定されています。  
 必要に応じて `cron` を編集してください。
 
 ---
