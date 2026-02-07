@@ -35,3 +35,14 @@ jobs:
       - name: Run checkin script
         working-directory: src
         run: python checkin.py
+
+      - name: Endfield daily check-in
+        env:
+          ENDFIELD_CRED: ${{ secrets.ENDFIELD_CRED }}
+          ENDFIELD_SK_GAME_ROLE: ${{ secrets.ENDFIELD_SK_GAME_ROLE }}
+          ENDFIELD_PLATFORM: ${{ secrets.ENDFIELD_PLATFORM }}   # 任意
+          ENDFIELD_VNAME: ${{ secrets.ENDFIELD_VNAME }}         # 任意
+          ENDFIELD_ACCOUNT_NAME: ${{ secrets.ENDFIELD_ACCOUNT_NAME }} # 任意
+        run: |
+          python src/endfield_checkin.py
+
