@@ -8,6 +8,9 @@ on:
 jobs:
   checkin:
     runs-on: ubuntu-latest
+    env:
+      ENDFIELD_CRED: ${{ secrets.ENDFIELD_CRED }}
+      ENDFIELD_SK_GAME_ROLE: ${{ secrets.ENDFIELD_SK_GAME_ROLE }}
 
     steps:
       - name: Checkout repository
@@ -37,10 +40,7 @@ jobs:
         run: python checkin.py
 
       - name: Endfield daily check-in
-        if: ${{ secrets.ENDFIELD_CRED != '' && secrets.ENDFIELD_SK_GAME_ROLE != '' }}
-        env:
-          ENDFIELD_CRED: ${{ secrets.ENDFIELD_CRED }}
-          ENDFIELD_SK_GAME_ROLE: ${{ secrets.ENDFIELD_SK_GAME_ROLE }}
+        if: ${{ env.ENDFIELD_CRED != '' && env.ENDFIELD_SK_GAME_ROLE != '' }}
         run: |
           python src/endfield_checkin.py
 
