@@ -101,6 +101,27 @@ def _copy_sqlite(src: Path) -> Path:
     return dst
 
 
+def _list_profile_dirs(user_data_dir: Path) -> list[str]:
+    out: list[str] = []
+    default = user_data_dir / "Default"
+    if default.exists():
+        out.append("Default")
+    for p in sorted(user_data_dir.glob("Profile *")):
+        if p.is_dir():
+            out.append(p.name)
+    return out
+
+
+def _cookie_db_path(profile_path: Path) -> Optional[Path]:
+    p1 = profile_path / "Network" / "Cookies"
+    if p1.exists():
+        return p1
+    p2 = profile_path / "Cookies"
+    if p2.exists():
+        return p2
+    return None
+
+
 def find_default_profile(browser: str, profile_directory: Optional[str]) -> BrowserProfile:
     lad = Path(os.environ.get("LOCALAPPDATA", ""))
     if not lad.exists():
@@ -121,19 +142,32 @@ def find_default_profile(browser: str, profile_directory: Optional[str]) -> Brow
         raise RuntimeError("No Chrome/Edge user data dir found.")
 
     # Prefer Edge if auto and it exists (most Windows machines).
-    return candidates[0]
+    prof = candidates[0]
+
+    # Validate/fix profile directory selection.
+    available = _list_profile_dirs(prof.user_data_dir)
+    if prof.profile_dir not in available:
+        # Common confusion: UI may show "Profile 1" but the first profile folder is still "Default".
+        if prof.profile_dir.strip().lower() == "profile 1" and "Default" in available:
+            prof = BrowserProfile(prof.name, prof.user_data_dir, "Default")
+        else:
+            raise FileNotFoundError(
+                f"Profile directory not found: {prof.profile_path}\n"
+                f"Available profiles under {prof.user_data_dir}: {', '.join(available) if available else '(none)'}"
+            )
+
+    return prof
 
 
 def read_hoyolab_tokens_from_profile(profile: BrowserProfile) -> dict[str, str]:
     aes_key = _get_chromium_key(profile.user_data_dir)
-    cookies_db = profile.profile_path / "Network" / "Cookies"
-    if not cookies_db.exists():
-        # Older paths sometimes use profile/Cookies
-        alt = profile.profile_path / "Cookies"
-        if alt.exists():
-            cookies_db = alt
-        else:
-            raise FileNotFoundError(f"Cookies DB not found under: {profile.profile_path}")
+    cookies_db = _cookie_db_path(profile.profile_path)
+    if not cookies_db:
+        available = _list_profile_dirs(profile.user_data_dir)
+        raise FileNotFoundError(
+            f"Cookies DB not found under: {profile.profile_path}\n"
+            f"Available profiles under {profile.user_data_dir}: {', '.join(available) if available else '(none)'}"
+        )
 
     copied = _copy_sqlite(cookies_db)
     try:
@@ -168,4 +202,3 @@ def read_hoyolab_tokens_from_profile(profile: BrowserProfile) -> dict[str, str]:
         elif name == "cookie_token_v2":
             m["COOKIE_TOKEN_V2"] = val
     return m
-
