@@ -1,4 +1,4 @@
-name: Build HoYoLAB Cookie Grabber (Release)
+name: Build Cookie/Cred Grabbers (Release)
 
 on:
   push:
@@ -26,14 +26,17 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install selenium pyinstaller
 
-      - name: Build EXE
+      - name: Build EXEs
         run: |
-          python -m PyInstaller --onefile src\grab_hoyolab_cookies.py --name hoyolab_cookie_grabber
+          python -m PyInstaller --onefile src\grab_hoyolab_genshin.py --name cookiegrab_genshin
+          python -m PyInstaller --onefile src\grab_hoyolab_hsr.py --name cookiegrab_hsr
+          python -m PyInstaller --onefile src\grab_hoyolab_zzz.py --name cookiegrab_zzz
+          python -m PyInstaller --onefile src\grab_hoyolab_hi3.py --name cookiegrab_hi3
+          python -m PyInstaller --onefile src\grab_endfield_cred.py --name credgrab_endfield
 
       - name: Publish to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/hoyolab_cookie_grabber.exe
-
+            dist/*.exe

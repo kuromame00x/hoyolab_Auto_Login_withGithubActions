@@ -1,4 +1,5 @@
-import argparse
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
@@ -7,9 +8,6 @@ from typing import Dict, Optional, Tuple
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.edge.options import Options as EdgeOptions
-
-
-DEFAULT_URL = "https://act.hoyolab.com/bbs/event/signin/hkrpg/index.html?act_id=e202303301540311"
 
 
 def mask(v: str) -> str:
@@ -30,7 +28,6 @@ def pause_exit(enabled: bool) -> None:
 
 
 def exe_dir() -> Path:
-    # When frozen by PyInstaller, sys.executable points to the .exe.
     try:
         return Path(sys.executable).resolve().parent
     except Exception:
@@ -51,15 +48,12 @@ def pick_profile_dir(user_data_dir: Path, preferred: Optional[str]) -> Optional[
     if preferred:
         return preferred
 
-    # Most common
     if (user_data_dir / "Default").exists():
         return "Default"
 
-    # Fallback: first Profile *
     for p in sorted(user_data_dir.glob("Profile *")):
         if p.is_dir():
             return p.name
-
     return None
 
 
@@ -74,7 +68,6 @@ def build_driver(browser: str, user_data_dir: Optional[Path], profile_dir: Optio
             opts.add_argument(f"--profile-directory={profile_dir}")
         return webdriver.Edge(options=opts)
 
-    # chrome
     opts = ChromeOptions()
     if headless:
         opts.add_argument("--headless=new")
@@ -121,42 +114,37 @@ def write_env(env_path: Path, kv: Dict[str, str]) -> None:
     env_path.write_text("".join(lines), encoding="utf-8")
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description="Open HoYoLAB URL and read cookie values from default browser profile.")
-    ap.add_argument("--url", default=DEFAULT_URL, help="URL to open (default: HoYoLAB check-in page).")
-    ap.add_argument("--browser", choices=["auto", "edge", "chrome"], default="auto")
-    ap.add_argument("--profile-directory", default=None, help="Chrome/Edge profile directory, e.g. Default or Profile 1.")
-    ap.add_argument("--no-default-profile", action="store_true", help="Do not use the default browser profile.")
-    ap.add_argument("--headless", action="store_true", help="Run headless (may break interactive login).")
-    ap.add_argument("--raw", action="store_true", help="Print raw cookie values to console.")
-    ap.add_argument("--no-pause", action="store_true", help="Do not wait for Enter before exit.")
-    args = ap.parse_args()
-
+def run_cookie_grab(
+    *,
+    url: str,
+    browser: str,
+    profile_directory: Optional[str],
+    use_default_profile: bool,
+    headless: bool,
+    raw: bool,
+    pause: bool,
+) -> int:
     chrome_ud, edge_ud = default_user_data_dirs()
 
-    # Choose browser and user-data-dir
-    browser = args.browser
     user_data_dir: Optional[Path] = None
     profile_dir: Optional[str] = None
+    b = browser
 
-    if not args.no_default_profile:
-        if browser in ("auto", "edge") and edge_ud.exists():
-            browser = "edge"
+    if use_default_profile:
+        if b in ("auto", "edge") and edge_ud.exists():
+            b = "edge"
             user_data_dir = edge_ud
-        elif browser in ("auto", "chrome") and chrome_ud.exists():
-            browser = "chrome"
+        elif b in ("auto", "chrome") and chrome_ud.exists():
+            b = "chrome"
             user_data_dir = chrome_ud
         else:
-            # Fall back to browser choice without profile.
-            browser = "edge" if browser == "auto" else browser
+            b = "edge" if b == "auto" else b
 
         if user_data_dir:
-            profile_dir = pick_profile_dir(user_data_dir, args.profile_directory)
-
-    pause = not args.no_pause
+            profile_dir = pick_profile_dir(user_data_dir, profile_directory)
 
     print("== HoYoLAB cookie grabber ==")
-    print(f"browser: {browser}")
+    print(f"browser: {b}")
     if user_data_dir and profile_dir:
         print(f"user-data-dir: {user_data_dir}")
         print(f"profile-directory: {profile_dir}")
@@ -166,10 +154,10 @@ def main() -> int:
 
     driver = None
     try:
-        driver = build_driver(browser, user_data_dir, profile_dir, args.headless)
-        driver.get(args.url)
-        print(f"Opened: {args.url}")
-        if not args.headless:
+        driver = build_driver(b, user_data_dir, profile_dir, headless)
+        driver.get(url)
+        print(f"Opened: {url}")
+        if not headless:
             print("If you are not logged in, please login in the opened browser window.")
             input("After the page is ready, press Enter to read cookies...")
 
@@ -178,19 +166,18 @@ def main() -> int:
         print("\nCookie values:")
         for k in ["LTUID", "LTOKEN", "COOKIE_TOKEN_V2"]:
             v = values.get(k, "")
-            print(f"- {k}: {v if args.raw else mask(v)}")
+            print(f"- {k}: {v if raw else mask(v)}")
 
         out_dir = exe_dir()
         env_path = out_dir / ".env"
         out_txt = out_dir / "secrets_output.txt"
-
-        # Save full values to files (local only).
         write_env(env_path, values)
-        out_txt.write_text("".join([f"{k}={values.get(k,'')}\n" for k in ["LTUID", "LTOKEN", "COOKIE_TOKEN_V2"]]), encoding="utf-8")
-
+        out_txt.write_text(
+            "".join([f"{k}={values.get(k,'')}\n" for k in ["LTUID", "LTOKEN", "COOKIE_TOKEN_V2"]]),
+            encoding="utf-8",
+        )
         print(f"\nSaved to: {env_path}")
         print(f"Saved to: {out_txt}")
-
         pause_exit(pause)
         return 0
     except Exception as e:
@@ -203,8 +190,4 @@ def main() -> int:
                 driver.quit()
         except Exception:
             pass
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
 
