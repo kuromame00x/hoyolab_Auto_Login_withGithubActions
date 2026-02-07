@@ -6,3 +6,6 @@ __pycache__/
 .venv/
 build/
 *.spec
+
+# Do not commit built binaries (publish via Releases instead)
+dist/*.exe

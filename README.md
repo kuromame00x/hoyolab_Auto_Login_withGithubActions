@@ -37,35 +37,16 @@ GitHub 上で fork して使ってください。
 
 ## HoYoLAB 用 Secret 取得方法
 
-## 一括取得ツール（HoYoLAB + SKPort）
+## Cookie 確認ツール（ゲーム別）
 
-`get_secrets.exe` を使うと、次をまとめて取得できます。
+それぞれのゲームをプレイしていない場合、チェックイン状況の確認が分かりづらいことがあるため、
+ゲーム別に「ログインできているか（cookie/認証情報が有効か）」だけ確認する `exe` を用意します。
 
-- `LTUID` / `LTOKEN` / `COOKIE_TOKEN_V2`
-- `ENDFIELD_CRED` / `ENDFIELD_SK_GAME_ROLE`
-- `HOYOVERSE_CRED` / `HOYOVERSE_SK_GAME_ROLE`（通信ヘッダ内に存在する場合のみ）
+配布:
+- GitHub Releases に `cookiecheck_*.exe` を配置します（リポジトリに exe はコミットしません）
 
-出力:
-- `.env` に追記/更新
-- `secrets_output.txt` に `KEY=VALUE` 形式で保存
-
-使い方:
-
-1. `dist/chrome_profile.txt` を必要に応じて編集（Chrome のプロファイル指定）
-2. `dist/get_secrets.exe` を実行
-3. HoYoLAB と SKPort のページが順に開くので、ログインと「1回サインイン実行」まで行って Enter
-
-ビルド方法（例）:
-
-```bat
-python -m pip install -U pip
-python -m pip install -r requirement.txt selenium pyinstaller
-python -m PyInstaller --onefile src/get_auth_tokens.py --name get_secrets
-```
-
-### HoYoLAB だけ取りたい場合
-
-一括ツールで取得できます。手動でやる場合は次を参照してください。
+ビルド/Release:
+- タグ `cookiecheck-v*` を push すると、GitHub Actions が Windows 用 exe をビルドして Release に添付します。
 
 ### B. DevTools で手動取得する方法
 

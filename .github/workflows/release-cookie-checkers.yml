@@ -1,0 +1,44 @@
+name: Build Cookie Checker EXEs (Release)
+
+on:
+  push:
+    tags:
+      - "cookiecheck-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirement.txt
+          python -m pip install pyinstaller
+
+      - name: Build EXEs
+        run: |
+          python -m PyInstaller --onefile src\check_genshin.py --name cookiecheck_genshin
+          python -m PyInstaller --onefile src\check_hsr.py --name cookiecheck_hsr
+          python -m PyInstaller --onefile src\check_zzz.py --name cookiecheck_zzz
+          python -m PyInstaller --onefile src\check_hi3.py --name cookiecheck_hi3
+          python -m PyInstaller --onefile src\check_endfield.py --name cookiecheck_endfield
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.exe
+
