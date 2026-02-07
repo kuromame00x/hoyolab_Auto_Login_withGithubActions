@@ -1,0 +1,8 @@
+# Local build helper (environment-specific)
+build.bat
+
+# Python
+__pycache__/
+.venv/
+build/
+*.spec
