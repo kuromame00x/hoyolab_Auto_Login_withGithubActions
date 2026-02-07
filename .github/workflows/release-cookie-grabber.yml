@@ -24,6 +24,7 @@ jobs:
       - name: Install build deps
         run: |
           python -m pip install --upgrade pip
+          python -m pip install -r requirement.txt
           python -m pip install selenium pyinstaller
 
       - name: Build EXEs
