@@ -34,6 +34,10 @@ jobs:
           python -m PyInstaller --onefile src\check_zzz.py --name cookiecheck_zzz
           python -m PyInstaller --onefile src\check_hi3.py --name cookiecheck_hi3
           python -m PyInstaller --onefile src\check_endfield.py --name cookiecheck_endfield
+      
+      - name: Create bundle zip
+        run: |
+          powershell -NoProfile -Command "Compress-Archive -Path 'dist\\*.exe','dist\\chrome_profile.txt' -DestinationPath 'dist\\cookiecheck_bundle_windows.zip' -Force"
 
       - name: Publish to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -42,3 +46,4 @@ jobs:
           files: |
             dist/*.exe
             dist/chrome_profile.txt
+            dist/cookiecheck_bundle_windows.zip
