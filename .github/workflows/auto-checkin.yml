@@ -40,7 +40,10 @@ jobs:
         run: python checkin.py
 
       - name: Endfield daily check-in
-        if: ${{ env.ENDFIELD_CRED != '' && env.ENDFIELD_SK_GAME_ROLE != '' }}
         run: |
-          python src/endfield_checkin.py
-
+          if [ -z "${ENDFIELD_CRED}" ] || [ -z "${ENDFIELD_SK_GAME_ROLE}" ]; then
+            echo "Endfield check-in skipped: ENDFIELD_CRED or ENDFIELD_SK_GAME_ROLE is empty."
+            echo "Check repository Settings > Secrets and variables > Actions."
+          else
+            python src/endfield_checkin.py
+          fi
