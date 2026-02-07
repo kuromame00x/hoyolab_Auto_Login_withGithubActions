@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import sqlite3
+import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -202,3 +203,18 @@ def read_hoyolab_tokens_from_profile(profile: BrowserProfile) -> dict[str, str]:
         elif name == "cookie_token_v2":
             m["COOKIE_TOKEN_V2"] = val
     return m
+
+
+def taskkill_browser(browser_name: str) -> None:
+    # Best-effort. This is intentionally forceful to avoid cookie DB locks.
+    b = (browser_name or "").lower()
+    img = "msedge.exe" if b == "edge" else "chrome.exe"
+    try:
+        subprocess.run(
+            ["taskkill", "/IM", img, "/F"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except Exception:
+        pass

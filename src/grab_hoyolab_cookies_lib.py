@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-from browser_cookies_windows import find_default_profile, read_hoyolab_tokens_from_profile
+from browser_cookies_windows import find_default_profile, read_hoyolab_tokens_from_profile, taskkill_browser
 
 
 def mask(v: str) -> str:
@@ -55,8 +55,11 @@ def pick_profile_dir(user_data_dir: Path, preferred: Optional[str]) -> Optional[
     return None
 
 
-def _load_hoyolab_tokens_from_default_profile(browser: str, profile_directory: Optional[str]) -> Dict[str, str]:
+def _load_hoyolab_tokens_from_default_profile(browser: str, profile_directory: Optional[str], kill_browser: bool) -> Dict[str, str]:
     prof = find_default_profile(browser, profile_directory)
+    if kill_browser:
+        print(f"taskkill: closing {prof.name} to avoid cookie DB lock...")
+        taskkill_browser(prof.name)
     return read_hoyolab_tokens_from_profile(prof)
 
 
@@ -106,6 +109,7 @@ def run_cookie_grab(
     headless: bool,
     raw: bool,
     pause: bool,
+    kill_browser: bool,
 ) -> int:
     try:
         if not use_default_profile:
@@ -119,7 +123,7 @@ def run_cookie_grab(
         print("== HoYoLAB cookie grabber (offline) ==")
         print(f"target url (for reference): {url}")
 
-        values = _load_hoyolab_tokens_from_default_profile(browser, profile_directory)
+        values = _load_hoyolab_tokens_from_default_profile(browser, profile_directory, kill_browser)
 
         print("\nCookie values:")
         for k in ["LTUID", "LTOKEN", "COOKIE_TOKEN_V2"]:
