@@ -41,4 +41,4 @@ jobs:
         with:
           files: |
             dist/*.exe
-
+            dist/chrome_profile.txt
