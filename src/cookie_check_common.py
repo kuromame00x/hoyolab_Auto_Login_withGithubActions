@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import time
 import uuid
 import random
@@ -105,3 +106,15 @@ def print_cookie_summary() -> None:
     for k in ["LTUID", "LTOKEN", "COOKIE_TOKEN_V2"]:
         print(f"- {k}: {mask(os.getenv(k, ''))}")
 
+
+def should_pause(argv: list[str] | None = None) -> bool:
+    a = argv if argv is not None else sys.argv[1:]
+    return "--no-pause" not in a
+
+
+def pause_exit(msg: str = "Press Enter to exit...") -> None:
+    # When double-clicking an .exe, the console closes immediately.
+    try:
+        input(msg)
+    except (EOFError, KeyboardInterrupt):
+        pass

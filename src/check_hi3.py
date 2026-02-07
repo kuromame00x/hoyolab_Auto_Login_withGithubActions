@@ -1,6 +1,6 @@
 import os
 
-from cookie_check_common import check_hoyolab_info, print_cookie_summary
+from cookie_check_common import check_hoyolab_info, pause_exit, print_cookie_summary, should_pause
 
 
 def main() -> None:
@@ -15,8 +15,9 @@ def main() -> None:
     print(f"act_id: {act_id}")
     print(f"retcode: {retcode}")
     print(f"message: {msg}")
+    if should_pause():
+        pause_exit()
 
 
 if __name__ == "__main__":
     main()
-

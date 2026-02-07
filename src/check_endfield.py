@@ -6,7 +6,7 @@ import hashlib
 import urllib.request
 import urllib.error
 
-from cookie_check_common import load_env, mask
+from cookie_check_common import load_env, mask, pause_exit, should_pause
 
 
 ZONAI_ORIGIN = "https://game.skport.com"
@@ -72,8 +72,9 @@ def main() -> None:
     token = refresh_token(cred, platform, vname)
     print(f"refresh ok, token: {mask(token)}")
     print("OK")
+    if should_pause():
+        pause_exit()
 
 
 if __name__ == "__main__":
     main()
-
