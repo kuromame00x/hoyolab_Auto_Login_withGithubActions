@@ -5,9 +5,7 @@ import sys
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options as ChromeOptions
-from selenium.webdriver.edge.options import Options as EdgeOptions
+from browser_cookies_windows import find_default_profile, read_hoyolab_tokens_from_profile
 
 
 def mask(v: str) -> str:
@@ -57,24 +55,9 @@ def pick_profile_dir(user_data_dir: Path, preferred: Optional[str]) -> Optional[
     return None
 
 
-def build_driver(browser: str, user_data_dir: Optional[Path], profile_dir: Optional[str], headless: bool):
-    b = browser.lower()
-    if b == "edge":
-        opts = EdgeOptions()
-        if headless:
-            opts.add_argument("--headless=new")
-        if user_data_dir and profile_dir:
-            opts.add_argument(f"--user-data-dir={str(user_data_dir)}")
-            opts.add_argument(f"--profile-directory={profile_dir}")
-        return webdriver.Edge(options=opts)
-
-    opts = ChromeOptions()
-    if headless:
-        opts.add_argument("--headless=new")
-    if user_data_dir and profile_dir:
-        opts.add_argument(f"--user-data-dir={str(user_data_dir)}")
-        opts.add_argument(f"--profile-directory={profile_dir}")
-    return webdriver.Chrome(options=opts)
+def _load_hoyolab_tokens_from_default_profile(browser: str, profile_directory: Optional[str]) -> Dict[str, str]:
+    prof = find_default_profile(browser, profile_directory)
+    return read_hoyolab_tokens_from_profile(prof)
 
 
 def extract_hoyolab_cookie_values(cookies: list[dict]) -> Dict[str, str]:
@@ -124,44 +107,19 @@ def run_cookie_grab(
     raw: bool,
     pause: bool,
 ) -> int:
-    chrome_ud, edge_ud = default_user_data_dirs()
-
-    user_data_dir: Optional[Path] = None
-    profile_dir: Optional[str] = None
-    b = browser
-
-    if use_default_profile:
-        if b in ("auto", "edge") and edge_ud.exists():
-            b = "edge"
-            user_data_dir = edge_ud
-        elif b in ("auto", "chrome") and chrome_ud.exists():
-            b = "chrome"
-            user_data_dir = chrome_ud
-        else:
-            b = "edge" if b == "auto" else b
-
-        if user_data_dir:
-            profile_dir = pick_profile_dir(user_data_dir, profile_directory)
-
-    print("== HoYoLAB cookie grabber ==")
-    print(f"browser: {b}")
-    if user_data_dir and profile_dir:
-        print(f"user-data-dir: {user_data_dir}")
-        print(f"profile-directory: {profile_dir}")
-        print("Note: If the browser is already running, profile may be locked. Close all Chrome/Edge and retry.")
-    else:
-        print("profile: (temporary session)")
-
-    driver = None
     try:
-        driver = build_driver(b, user_data_dir, profile_dir, headless)
-        driver.get(url)
-        print(f"Opened: {url}")
-        if not headless:
-            print("If you are not logged in, please login in the opened browser window.")
-            input("After the page is ready, press Enter to read cookies...")
+        if not use_default_profile:
+            print("ERROR: --no-default-profile is no longer supported in this build (offline cookie read).")
+            pause_exit(pause)
+            return 1
 
-        values = extract_hoyolab_cookie_values(driver.get_cookies())
+        if headless:
+            print("Note: headless is ignored (offline cookie read).")
+
+        print("== HoYoLAB cookie grabber (offline) ==")
+        print(f"target url (for reference): {url}")
+
+        values = _load_hoyolab_tokens_from_default_profile(browser, profile_directory)
 
         print("\nCookie values:")
         for k in ["LTUID", "LTOKEN", "COOKIE_TOKEN_V2"]:
@@ -184,10 +142,3 @@ def run_cookie_grab(
         print(f"\nERROR: {e}")
         pause_exit(pause)
         return 1
-    finally:
-        try:
-            if driver:
-                driver.quit()
-        except Exception:
-            pass
-
