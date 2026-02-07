@@ -1,0 +1,39 @@
+name: Build HoYoLAB Cookie Grabber (Release)
+
+on:
+  push:
+    tags:
+      - "cookiegrab-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install selenium pyinstaller
+
+      - name: Build EXE
+        run: |
+          python -m PyInstaller --onefile src\grab_hoyolab_cookies.py --name hoyolab_cookie_grabber
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/hoyolab_cookie_grabber.exe
+
