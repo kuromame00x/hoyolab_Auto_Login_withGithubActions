@@ -27,28 +27,6 @@ def exe_dir() -> Path:
     except Exception:
         return Path.cwd()
 
-
-def write_env(env_path: Path, kv: dict[str, str]) -> None:
-    lines: list[str] = []
-    if env_path.exists():
-        lines = env_path.read_text(encoding="utf-8").splitlines(True)
-
-    def upsert(key: str, value: str) -> None:
-        nonlocal lines
-        prefix = f"{key}="
-        for i, line in enumerate(lines):
-            if line.startswith(prefix):
-                lines[i] = f"{key}={value}\n"
-                return
-        lines.append(f"{key}={value}\n")
-
-    for k, v in kv.items():
-        if v:
-            upsert(k, v)
-
-    env_path.write_text("".join(lines), encoding="utf-8")
-
-
 def _iter_har_request_headers(har: dict) -> list[dict[str, str]]:
     # Return list of {header_name_lower: value} for each request in HAR.
     out: list[dict[str, str]] = []
@@ -153,17 +131,7 @@ def main() -> int:
     for k in ["ENDFIELD_CRED", "ENDFIELD_SK_GAME_ROLE", "ENDFIELD_PLATFORM", "ENDFIELD_VNAME"]:
         v = values.get(k, "") or ""
         print(f"- {k}: {v if args.raw else mask(v)}")
-
-    out_dir = exe_dir()
-    env_path = out_dir / ".env"
-    out_txt = out_dir / "secrets_output.txt"
-    write_env(env_path, values)
-    out_txt.write_text(
-        "".join([f"{k}={values.get(k,'')}\n" for k in ["ENDFIELD_CRED", "ENDFIELD_SK_GAME_ROLE", "ENDFIELD_PLATFORM", "ENDFIELD_VNAME"]]),
-        encoding="utf-8",
-    )
-    print(f"\nSaved to: {env_path}")
-    print(f"Saved to: {out_txt}")
+    print("\nNOTE: This tool does not save secrets to disk; it only prints them.")
 
     if not values.get("ENDFIELD_CRED") or not values.get("ENDFIELD_SK_GAME_ROLE"):
         print("\nNOTE: cred / sk-game-role not found in this HAR.")
@@ -178,4 +146,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

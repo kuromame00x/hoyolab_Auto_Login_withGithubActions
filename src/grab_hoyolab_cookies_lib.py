@@ -25,13 +25,6 @@ def pause_exit(enabled: bool) -> None:
         pass
 
 
-def exe_dir() -> Path:
-    try:
-        return Path(sys.executable).resolve().parent
-    except Exception:
-        return Path.cwd()
-
-
 def default_user_data_dirs() -> Tuple[Path, Path]:
     lad = Path(os.environ.get("LOCALAPPDATA", ""))
     chrome = lad / "Google" / "Chrome" / "User Data"
@@ -79,27 +72,6 @@ def extract_hoyolab_cookie_values(cookies: list[dict]) -> Dict[str, str]:
     }
 
 
-def write_env(env_path: Path, kv: Dict[str, str]) -> None:
-    lines = []
-    if env_path.exists():
-        lines = env_path.read_text(encoding="utf-8").splitlines(True)
-
-    def upsert(key: str, value: str) -> None:
-        nonlocal lines
-        prefix = f"{key}="
-        for i, line in enumerate(lines):
-            if line.startswith(prefix):
-                lines[i] = f"{key}={value}\n"
-                return
-        lines.append(f"{key}={value}\n")
-
-    for k, v in kv.items():
-        if v:
-            upsert(k, v)
-
-    env_path.write_text("".join(lines), encoding="utf-8")
-
-
 def run_cookie_grab(
     *,
     url: str,
@@ -129,17 +101,7 @@ def run_cookie_grab(
         for k in ["LTUID", "LTOKEN", "COOKIE_TOKEN_V2"]:
             v = values.get(k, "")
             print(f"- {k}: {v if raw else mask(v)}")
-
-        out_dir = exe_dir()
-        env_path = out_dir / ".env"
-        out_txt = out_dir / "secrets_output.txt"
-        write_env(env_path, values)
-        out_txt.write_text(
-            "".join([f"{k}={values.get(k,'')}\n" for k in ["LTUID", "LTOKEN", "COOKIE_TOKEN_V2"]]),
-            encoding="utf-8",
-        )
-        print(f"\nSaved to: {env_path}")
-        print(f"Saved to: {out_txt}")
+        print("\nNOTE: This tool does not save secrets to disk; it only prints them.")
         pause_exit(pause)
         return 0
     except Exception as e:
