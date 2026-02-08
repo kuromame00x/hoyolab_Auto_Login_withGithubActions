@@ -1,2 +1,0 @@
-user-data-dir=%LOCALAPPDATA%\Google\Chrome\User Data\hoyolab
-profile-directory=Default
