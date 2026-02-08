@@ -1,4 +1,4 @@
-name: Build Cookie/Cred Grabbers (Release)
+name: Build Grabber (Release)
 
 on:
   push:
@@ -30,8 +30,6 @@ jobs:
       - name: Build EXE
         run: |
           python -m PyInstaller --onefile src\cookiegrab.py --name cookiegrab
-          python -m PyInstaller --onefile src\endfieldgrab.py --name endfieldgrab
-          python -m PyInstaller --onefile src\endfieldgrab_har.py --name endfieldgrab_har
 
       - name: Publish to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -39,5 +37,3 @@ jobs:
         with:
           files: |
             dist/cookiegrab.exe
-            dist/endfieldgrab.exe
-            dist/endfieldgrab_har.exe
