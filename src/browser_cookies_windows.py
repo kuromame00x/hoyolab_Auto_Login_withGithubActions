@@ -140,6 +140,57 @@ def _cookie_db_path(profile_path: Path) -> Optional[Path]:
     return None
 
 
+def read_cookie_values_from_profile(profile: BrowserProfile, *, host_like: str, names: list[str]) -> dict[str, str]:
+    aes_key = _get_chromium_key(profile.user_data_dir)
+    cookies_db = _cookie_db_path(profile.profile_path)
+    if not cookies_db:
+        available = _list_profile_dirs(profile.user_data_dir)
+        raise FileNotFoundError(
+            f"Cookies DB not found under: {profile.profile_path}\n"
+            f"Available profiles under {profile.user_data_dir}: {', '.join(available) if available else '(none)'}"
+        )
+
+    placeholders = ",".join(["?"] * len(names))
+    copied: Path
+    try:
+        copied = _copy_sqlite(cookies_db)
+    except Exception as e:
+        raise RuntimeError(
+            "Failed to copy Cookies DB (maybe the browser/profile is locked).\n"
+            f"Path: {cookies_db}\n"
+            "Close Chrome/Edge and retry, or run with --kill-browser.\n"
+            f"Original error: {e}"
+        )
+
+    try:
+        con = sqlite3.connect(str(copied))
+        try:
+            cur = con.cursor()
+            cur.execute(
+                f"""
+                SELECT host_key, name, encrypted_value
+                FROM cookies
+                WHERE host_key LIKE ?
+                  AND name IN ({placeholders})
+                """,
+                [host_like, *names],
+            )
+            rows = cur.fetchall()
+        finally:
+            con.close()
+    finally:
+        try:
+            shutil.rmtree(copied.parent, ignore_errors=True)
+        except Exception:
+            pass
+
+    out: dict[str, str] = {n: "" for n in names}
+    for _host, name, ev in rows:
+        if name in out:
+            out[name] = _decrypt_chromium_cookie(ev, aes_key)
+    return out
+
+
 def find_default_profile(browser: str, profile_directory: Optional[str]) -> BrowserProfile:
     lad = Path(os.environ.get("LOCALAPPDATA", ""))
     if not lad.exists():
@@ -178,56 +229,22 @@ def find_default_profile(browser: str, profile_directory: Optional[str]) -> Brow
 
 
 def read_hoyolab_tokens_from_profile(profile: BrowserProfile) -> dict[str, str]:
-    aes_key = _get_chromium_key(profile.user_data_dir)
-    cookies_db = _cookie_db_path(profile.profile_path)
-    if not cookies_db:
-        available = _list_profile_dirs(profile.user_data_dir)
-        raise FileNotFoundError(
-            f"Cookies DB not found under: {profile.profile_path}\n"
-            f"Available profiles under {profile.user_data_dir}: {', '.join(available) if available else '(none)'}"
-        )
+    m = read_cookie_values_from_profile(
+        profile,
+        host_like="%hoyolab.com%",
+        names=["ltuid_v2", "ltoken_v2", "cookie_token_v2"],
+    )
+    return {
+        "LTUID": m.get("ltuid_v2", ""),
+        "LTOKEN": m.get("ltoken_v2", ""),
+        "COOKIE_TOKEN_V2": m.get("cookie_token_v2", ""),
+    }
 
-    try:
-        copied = _copy_sqlite(cookies_db)
-    except Exception as e:
-        raise RuntimeError(
-            "Failed to copy Cookies DB (maybe the browser/profile is locked).\n"
-            f"Path: {cookies_db}\n"
-            "Close Chrome/Edge and retry, or run with --kill-browser.\n"
-            f"Original error: {e}"
-        )
-    try:
-        con = sqlite3.connect(str(copied))
-        try:
-            cur = con.cursor()
-            cur.execute(
-                """
-                SELECT host_key, name, encrypted_value
-                FROM cookies
-                WHERE host_key LIKE '%hoyolab.com%'
-                  AND name IN ('ltuid_v2','ltoken_v2','cookie_token_v2')
-                """
-            )
-            rows = cur.fetchall()
-        finally:
-            con.close()
-    finally:
-        # Cleanup temp dir
-        try:
-            shutil.rmtree(copied.parent, ignore_errors=True)
-        except Exception:
-            pass
 
-    m: dict[str, str] = {"LTUID": "", "LTOKEN": "", "COOKIE_TOKEN_V2": ""}
-    for _host, name, ev in rows:
-        val = _decrypt_chromium_cookie(ev, aes_key)
-        if name == "ltuid_v2":
-            m["LTUID"] = val
-        elif name == "ltoken_v2":
-            m["LTOKEN"] = val
-        elif name == "cookie_token_v2":
-            m["COOKIE_TOKEN_V2"] = val
-    return m
+def read_endfield_cred_from_profile(profile: BrowserProfile) -> dict[str, str]:
+    # From DevTools screenshot: cookie name SK_OAUTH_CRED_KEY under game.skport.com.
+    m = read_cookie_values_from_profile(profile, host_like="%skport.com%", names=["SK_OAUTH_CRED_KEY"])
+    return {"ENDFIELD_CRED": m.get("SK_OAUTH_CRED_KEY", "")}
 
 
 def taskkill_browser(browser_name: str) -> None:
