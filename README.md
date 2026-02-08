@@ -37,41 +37,48 @@ GitHub 上で fork して使ってください。
 
 ## HoYoLAB 用 Secret 取得方法
 
-## Cookie 確認ツール（ゲーム別）
+### cookiegrab.exe（推奨）
 
-それぞれのゲームをプレイしていない場合、チェックイン状況の確認が分かりづらいことがあるため、
-ゲーム別に「ログインできているか（cookie/認証情報が有効か）」だけ確認する `exe` を用意します。
+1. GitHub Releases から `cookiegrab.exe` をダウンロード
+2. 対象ゲームのチェックインページを開く（ログイン済み状態にする）
+3. DevTools (`F12`) → `Network`
+4. `Preserve log` を ON にして、ページを再読み込み（通信を出す）
+5. `Save all as HAR with content` で `.har` を保存
+6. `cookiegrab.exe` で HAR を読み取って値を表示
 
-配布:
-- GitHub Releases に `cookiecheck_*.exe` を配置します（リポジトリに exe はコミットしません）
+例:
 
-ビルド/Release:
-- タグ `cookiecheck-v*` を push すると、GitHub Actions が Windows 用 exe をビルドして Release に添付します。
+```bat
+cookiegrab.exe --list-games
+cookiegrab.exe 1 "C:\\path\\to\\hoyolab.har" --raw
+```
 
-### B. DevTools で手動取得する方法
+出力された値をそのまま Secrets に登録してください:
+- `LTUID`
+- `LTOKEN`
+- `COOKIE_TOKEN_V2`
 
-1. HoYoLAB チェックインページを開く  
-   `https://act.hoyolab.com/bbs/event/signin/hkrpg/index.html?act_id=e202303301540311`
-2. DevTools (`F12`) を開く
-3. `Application > Storage > Cookies > https://*.hoyolab.com`
-4. `ltuid_v2` / `ltoken_v2` / `cookie_token_v2` を取得
-5. 次の対応で Secrets に登録
-   - `LTUID` <- `ltuid_v2`
-   - `LTOKEN` <- `ltoken_v2`
-   - `COOKIE_TOKEN_V2` <- `cookie_token_v2`
+注意:
+- `.har` には Cookie やヘッダが含まれるので、他人に共有しないでください。使い終わったら削除推奨です。
 
 ## Endfield 用 Secret 取得方法（`ENDFIELD_CRED`, `ENDFIELD_SK_GAME_ROLE`）
 
 1. Endfield サインインページを開いてログイン  
    `https://game.skport.com/endfield/sign-in?header=0&hg_media=skport&hg_link_campaign=tools`
-2. DevTools (`F12`) を開き、`Network` タブへ
-3. サインイン実行時の通信を選択（例:  
-   `https://zonai.skport.com/web/v1/game/endfield/attendance` か  
-   `https://zonai.skport.com/web/v1/auth/refresh`）
-4. `Request Headers` から次を取得
-   - `cred` -> `ENDFIELD_CRED`
-   - `sk-game-role` -> `ENDFIELD_SK_GAME_ROLE`
-5. 2つを `Repository secrets` に登録
+2. DevTools (`F12`) → `Network`
+3. `Preserve log` を ON にして、サインイン（出席）ボタンを 1 回押して通信を出す
+4. `Save all as HAR with content` で `.har` を保存
+5. `cookiegrab.exe` で HAR を読み取って値を表示
+
+例:
+
+```bat
+cookiegrab.exe 5 "C:\\path\\to\\endfield.har" --raw
+```
+
+出力された値を Secrets に登録してください:
+- `ENDFIELD_CRED`
+- `ENDFIELD_SK_GAME_ROLE`
 
 ## 動作確認
 
