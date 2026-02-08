@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -245,6 +246,68 @@ def read_endfield_cred_from_profile(profile: BrowserProfile) -> dict[str, str]:
     # From DevTools screenshot: cookie name SK_OAUTH_CRED_KEY under game.skport.com.
     m = read_cookie_values_from_profile(profile, host_like="%skport.com%", names=["SK_OAUTH_CRED_KEY"])
     return {"ENDFIELD_CRED": m.get("SK_OAUTH_CRED_KEY", "")}
+
+
+def _local_storage_leveldb_dir(profile_path: Path) -> Optional[Path]:
+    p = profile_path / "Local Storage" / "leveldb"
+    return p if p.exists() else None
+
+
+def _scan_leveldb_dir_for_key(leveldb_dir: Path, key: str) -> Optional[str]:
+    # Best-effort "string scrape" from LevelDB files.
+    #
+    # Chromium stores Local Storage in a LevelDB. We avoid heavy dependencies by scanning for the key string
+    # and extracting a nearby numeric value. This works for simple cases like APP_CURRENT_ROLE_GAME_ROLE:endfield.
+    key_b = key.encode("utf-8", errors="ignore")
+    value_re = re.compile(rb"([0-9]{4,})(::)?")
+
+    files = list(leveldb_dir.glob("*.log")) + list(leveldb_dir.glob("*.ldb")) + list(leveldb_dir.glob("*.sst"))
+    files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+
+    for fp in files:
+        try:
+            data = fp.read_bytes()
+        except Exception:
+            continue
+
+        # Find last occurrence in file first (more likely "current").
+        idx = data.rfind(key_b)
+        if idx < 0:
+            continue
+
+        # Look around for a plausible numeric value.
+        window = data[idx : idx + 800]
+        m = value_re.search(window)
+        if not m:
+            continue
+
+        try:
+            return m.group(0).decode("utf-8", errors="replace")
+        except Exception:
+            return None
+
+    return None
+
+
+def read_endfield_roles_from_profile(profile: BrowserProfile) -> dict[str, str]:
+    # From DevTools screenshot (Application -> Local storage https://game.skport.com):
+    # - APP_CURRENT_ROLE:endfield -> e.g. "372802296::"
+    # - APP_CURRENT_ROLE_GAME_ROLE:endfield -> e.g. "4722345642::"
+    ldb = _local_storage_leveldb_dir(profile.profile_path)
+    if not ldb:
+        return {"ENDFIELD_ROLE_ID": "", "ENDFIELD_GAME_ROLE_ID": ""}
+
+    role = _scan_leveldb_dir_for_key(ldb, "APP_CURRENT_ROLE:endfield") or ""
+    game_role = _scan_leveldb_dir_for_key(ldb, "APP_CURRENT_ROLE_GAME_ROLE:endfield") or ""
+
+    # Normalize: keep raw too? Caller can decide; we strip trailing :: for convenience.
+    def _strip(v: str) -> str:
+        return v[:-2] if v.endswith("::") else v
+
+    return {
+        "ENDFIELD_ROLE_ID": _strip(role),
+        "ENDFIELD_GAME_ROLE_ID": _strip(game_role),
+    }
 
 
 def taskkill_browser(browser_name: str) -> None:

@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import Dict, Optional
 
-from browser_cookies_windows import find_default_profile, read_endfield_cred_from_profile, taskkill_browser
+from browser_cookies_windows import (
+    find_default_profile,
+    read_endfield_cred_from_profile,
+    read_endfield_roles_from_profile,
+    taskkill_browser,
+)
 from cookie_check_common import mask, pause_exit
 
 
@@ -11,7 +16,10 @@ def _load_endfield_cred_from_default_profile(browser: str, profile_directory: Op
     if kill_browser:
         print(f"taskkill: closing {prof.name} to avoid cookie DB lock...")
         taskkill_browser(prof.name)
-    return read_endfield_cred_from_profile(prof)
+    out: Dict[str, str] = {}
+    out.update(read_endfield_cred_from_profile(prof))
+    out.update(read_endfield_roles_from_profile(prof))
+    return out
 
 
 def run_endfield_cred_grab(
@@ -27,12 +35,21 @@ def run_endfield_cred_grab(
         values = _load_endfield_cred_from_default_profile(browser, profile_directory, kill_browser)
 
         print("\nCookie values:")
-        v = values.get("ENDFIELD_CRED", "")
-        print(f"- ENDFIELD_CRED: {v if raw else mask(v)}")
+        cred = values.get("ENDFIELD_CRED", "")
+        print(f"- ENDFIELD_CRED: {cred if raw else mask(cred)}")
+
+        print("\nLocalStorage values (best-effort):")
+        rid = values.get("ENDFIELD_ROLE_ID", "")
+        grid = values.get("ENDFIELD_GAME_ROLE_ID", "")
+        print(f"- APP_CURRENT_ROLE:endfield -> {rid if raw else mask(rid)}")
+        print(f"- APP_CURRENT_ROLE_GAME_ROLE:endfield -> {grid if raw else mask(grid)}")
+        if grid:
+            print("\nNOTE: ENDFIELD_SK_GAME_ROLE may be a formatted value derived from the game role id.")
+            print("      If you need the exact request header value, prefer extracting it from HAR (Network headers).")
         print("\nNOTE: This tool does not save secrets to disk; it only prints them.")
         if pause:
             pause_exit()
-        return 0 if v else 1
+        return 0 if cred else 1
     except Exception as e:
         print(f"\nERROR: {e}")
         if pause:
