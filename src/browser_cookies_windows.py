@@ -89,6 +89,14 @@ def _decrypt_chromium_cookie(encrypted_value: bytes, aes_key: bytes) -> str:
         ct = encrypted_value[15:]
         return AESGCM(aes_key).decrypt(nonce, ct, None).decode("utf-8", errors="replace")
 
+    # v20+ is Chrome/Edge "app-bound" cookie encryption on Windows. This is not decryptable
+    # with the legacy Local State "encrypted_key" alone.
+    if encrypted_value.startswith(b"v20"):
+        raise RuntimeError(
+            "Detected v20 (app-bound) cookie encryption. Offline cookie DB decryption is not supported in this tool.\n"
+            "Use DevTools-exported HAR mode instead (cookiegrab.exe --source har --har <path> --url <url>)."
+        )
+
     # Old format: DPAPI blob
     try:
         return _dpapi_decrypt(encrypted_value).decode("utf-8", errors="replace")
