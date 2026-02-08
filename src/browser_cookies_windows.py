@@ -7,6 +7,7 @@ import shutil
 import sqlite3
 import subprocess
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -209,12 +210,40 @@ def taskkill_browser(browser_name: str) -> None:
     # Best-effort. This is intentionally forceful to avoid cookie DB locks.
     b = (browser_name or "").lower()
     img = "msedge.exe" if b == "edge" else "chrome.exe"
-    try:
-        subprocess.run(
-            ["taskkill", "/IM", img, "/F"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=False,
-        )
-    except Exception:
-        pass
+
+    def _run(cmd: list[str]) -> tuple[int, str]:
+        try:
+            p = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            out = (p.stdout or "") + (p.stderr or "")
+            return int(p.returncode), out.strip()
+        except Exception as e:
+            return 999, str(e)
+
+    code, out = _run(["taskkill", "/IM", img, "/F", "/T"])
+    if code == 0:
+        print(f"taskkill ok: {img}")
+        time.sleep(0.5)
+        return
+
+    # taskkill can fail if process is elevated or already closed.
+    if out:
+        print(f"taskkill failed ({code}) for {img}: {out}")
+    else:
+        print(f"taskkill failed ({code}) for {img}")
+
+    # Fallback: PowerShell Stop-Process (sometimes works when taskkill doesn't).
+    name_no_ext = img[:-4] if img.lower().endswith(".exe") else img
+    code2, out2 = _run(
+        [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            f"Get-Process -Name {name_no_ext} -ErrorAction SilentlyContinue | Stop-Process -Force",
+        ]
+    )
+    if code2 == 0:
+        print(f"Stop-Process ok: {name_no_ext}")
+        time.sleep(0.5)
+        return
+    if out2:
+        print(f"Stop-Process failed ({code2}) for {name_no_ext}: {out2}")
