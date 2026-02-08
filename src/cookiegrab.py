@@ -17,9 +17,17 @@ PRESETS = {
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Read HoYoLAB cookie values from default browser profile (offline).")
-    ap.add_argument("--preset", choices=sorted(PRESETS.keys()), default="hsr", help="Choose a game URL preset (for reference only).")
+    ap.add_argument(
+        "--preset",
+        "--game",
+        dest="preset",
+        choices=sorted(PRESETS.keys()),
+        default="hsr",
+        help="Choose a game URL preset (for reference only).",
+    )
     ap.add_argument("--url", default=None, help="Optional URL (for reference only). If set, overrides --preset.")
-    ap.add_argument("--browser", choices=["auto", "edge", "chrome"], default="auto")
+    # Prefer Chrome by default (user request); use --browser auto if you want auto detection.
+    ap.add_argument("--browser", choices=["auto", "edge", "chrome"], default="chrome")
     ap.add_argument("--profile-directory", default=None, help="Chrome/Edge profile directory, e.g. Default or Profile 1.")
     ap.add_argument("--raw", action="store_true", help="Print raw cookie values to console.")
     ap.add_argument("--no-kill-browser", action="store_true", help="Do not taskkill the target browser before reading cookie DB.")
@@ -41,4 +49,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
