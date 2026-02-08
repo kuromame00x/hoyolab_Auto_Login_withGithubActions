@@ -95,12 +95,28 @@ def _decrypt_chromium_cookie(encrypted_value: bytes, aes_key: bytes) -> str:
         return ""
 
 
-def _copy_sqlite(src: Path) -> Path:
+def _copy_sqlite(src: Path, retries: int = 8, base_delay_s: float = 0.15) -> Path:
     # Copy to temp so we can read even if the browser is running/locking the DB.
+    # If the profile is locked hard, this may still fail; callers should surface a helpful message.
     td = Path(tempfile.mkdtemp(prefix="cookie_db_"))
     dst = td / "Cookies"
-    shutil.copy2(src, dst)
-    return dst
+    try:
+        last_exc: Exception | None = None
+        for i in range(max(1, retries)):
+            try:
+                shutil.copy2(src, dst)
+                return dst
+            except Exception as e:
+                last_exc = e
+                # Windows sharing violation often clears quickly after the browser closes.
+                time.sleep(base_delay_s * (i + 1))
+        raise last_exc or RuntimeError("copy failed")
+    except Exception:
+        try:
+            shutil.rmtree(td, ignore_errors=True)
+        except Exception:
+            pass
+        raise
 
 
 def _list_profile_dirs(user_data_dir: Path) -> list[str]:
@@ -171,7 +187,15 @@ def read_hoyolab_tokens_from_profile(profile: BrowserProfile) -> dict[str, str]:
             f"Available profiles under {profile.user_data_dir}: {', '.join(available) if available else '(none)'}"
         )
 
-    copied = _copy_sqlite(cookies_db)
+    try:
+        copied = _copy_sqlite(cookies_db)
+    except Exception as e:
+        raise RuntimeError(
+            "Failed to copy Cookies DB (maybe the browser/profile is locked).\n"
+            f"Path: {cookies_db}\n"
+            "Close Chrome/Edge and retry, or run with --kill-browser.\n"
+            f"Original error: {e}"
+        )
     try:
         con = sqlite3.connect(str(copied))
         try:

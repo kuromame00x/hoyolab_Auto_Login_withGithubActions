@@ -30,7 +30,13 @@ def main() -> int:
     ap.add_argument("--browser", choices=["auto", "edge", "chrome"], default="chrome")
     ap.add_argument("--profile-directory", default=None, help="Chrome/Edge profile directory, e.g. Default or Profile 1.")
     ap.add_argument("--raw", action="store_true", help="Print raw cookie values to console.")
-    ap.add_argument("--no-kill-browser", action="store_true", help="Do not taskkill the target browser before reading cookie DB.")
+
+    # Default: do NOT kill the browser. If the cookie DB is locked, close Chrome and retry, or pass --kill-browser.
+    kill_group = ap.add_mutually_exclusive_group()
+    kill_group.add_argument("--kill-browser", dest="kill_browser", action="store_true", help="Taskkill the target browser before reading cookie DB.")
+    kill_group.add_argument("--no-kill-browser", dest="kill_browser", action="store_false", help=argparse.SUPPRESS)  # backward compat
+    ap.set_defaults(kill_browser=False)
+
     ap.add_argument("--no-pause", action="store_true", help="Do not wait for Enter before exit.")
     args = ap.parse_args()
 
@@ -43,7 +49,7 @@ def main() -> int:
         headless=False,
         raw=args.raw,
         pause=not args.no_pause,
-        kill_browser=not args.no_kill_browser,
+        kill_browser=bool(args.kill_browser),
     )
 
 
