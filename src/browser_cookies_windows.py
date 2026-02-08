@@ -300,12 +300,13 @@ def _scan_leveldb_dir_for_key(leveldb_dir: Path, key_fragment: str) -> Optional[
 
         # Look around for a plausible numeric value (allow wider window).
         window = data[idx : idx + 4096]
-        hits = list(value_re.finditer(window))
-        if not hits:
+        start = min(len(window), len(key_b))  # local index offset from window start
+        # Search only AFTER the key fragment to avoid accidentally picking an earlier numeric field.
+        tail = window[start:]
+        m = value_re.search(tail)
+        if not m:
             continue
 
-        # Prefer the last hit in the window (more likely the value attached to the most recent record).
-        m = hits[-1]
         try:
             return m.group(0).decode("utf-8", errors="replace")
         except Exception:
