@@ -29,6 +29,7 @@ def main() -> int:
     # Prefer Chrome by default (user request); use --browser auto if you want auto detection.
     ap.add_argument("--browser", choices=["auto", "edge", "chrome"], default="chrome")
     ap.add_argument("--profile-directory", default=None, help="Chrome/Edge profile directory, e.g. Default or Profile 1.")
+    ap.add_argument("--list-profiles", action="store_true", help="List available Chrome/Edge profile directories and exit.")
     ap.add_argument("--raw", action="store_true", help="Print raw cookie values to console.")
 
     # Default: do NOT kill the browser. If the cookie DB is locked, close Chrome and retry, or pass --kill-browser.
@@ -39,6 +40,18 @@ def main() -> int:
 
     ap.add_argument("--no-pause", action="store_true", help="Do not wait for Enter before exit.")
     args = ap.parse_args()
+
+    if args.list_profiles:
+        from browser_cookies_windows import list_available_profiles
+
+        profs = list_available_profiles(args.browser)
+        print("Available profiles:")
+        if not profs:
+            print("(none found)")
+            return 1
+        for p in profs:
+            print(f"- {p.name}: {p.profile_dir} ({p.user_data_dir})")
+        return 0
 
     url = args.url or PRESETS[args.preset]
     return run_cookie_grab(

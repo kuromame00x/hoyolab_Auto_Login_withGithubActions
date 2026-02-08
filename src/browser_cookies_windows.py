@@ -141,6 +141,28 @@ def _cookie_db_path(profile_path: Path) -> Optional[Path]:
     return None
 
 
+def list_available_profiles(browser: str) -> list[BrowserProfile]:
+    lad = Path(os.environ.get("LOCALAPPDATA", ""))
+    if not lad.exists():
+        return []
+
+    browser_l = (browser or "auto").lower()
+    out: list[BrowserProfile] = []
+
+    def _add(name: str, udd: Path) -> None:
+        if not udd.exists():
+            return
+        for d in _list_profile_dirs(udd):
+            out.append(BrowserProfile(name, udd, d))
+
+    if browser_l in ("auto", "edge"):
+        _add("edge", lad / "Microsoft" / "Edge" / "User Data")
+    if browser_l in ("auto", "chrome"):
+        _add("chrome", lad / "Google" / "Chrome" / "User Data")
+
+    return out
+
+
 def read_cookie_values_from_profile(profile: BrowserProfile, *, host_like: str, names: list[str]) -> dict[str, str]:
     aes_key = _get_chromium_key(profile.user_data_dir)
     cookies_db = _cookie_db_path(profile.profile_path)
@@ -253,13 +275,14 @@ def _local_storage_leveldb_dir(profile_path: Path) -> Optional[Path]:
     return p if p.exists() else None
 
 
-def _scan_leveldb_dir_for_key(leveldb_dir: Path, key: str) -> Optional[str]:
+def _scan_leveldb_dir_for_key(leveldb_dir: Path, key_fragment: str) -> Optional[str]:
     # Best-effort "string scrape" from LevelDB files.
     #
     # Chromium stores Local Storage in a LevelDB. We avoid heavy dependencies by scanning for the key string
     # and extracting a nearby numeric value. This works for simple cases like APP_CURRENT_ROLE_GAME_ROLE:endfield.
-    key_b = key.encode("utf-8", errors="ignore")
-    value_re = re.compile(rb"([0-9]{4,})(::)?")
+    key_b = key_fragment.encode("utf-8", errors="ignore")
+    # Prefer values that look like large numeric IDs with trailing "::" (as shown in DevTools).
+    value_re = re.compile(rb"([0-9]{7,})(::)")
 
     files = list(leveldb_dir.glob("*.log")) + list(leveldb_dir.glob("*.ldb")) + list(leveldb_dir.glob("*.sst"))
     files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
@@ -270,17 +293,19 @@ def _scan_leveldb_dir_for_key(leveldb_dir: Path, key: str) -> Optional[str]:
         except Exception:
             continue
 
-        # Find last occurrence in file first (more likely "current").
+        # The LevelDB key may include origin/prefix bytes; we search by fragment.
         idx = data.rfind(key_b)
         if idx < 0:
             continue
 
-        # Look around for a plausible numeric value.
-        window = data[idx : idx + 800]
-        m = value_re.search(window)
-        if not m:
+        # Look around for a plausible numeric value (allow wider window).
+        window = data[idx : idx + 4096]
+        hits = list(value_re.finditer(window))
+        if not hits:
             continue
 
+        # Prefer the last hit in the window (more likely the value attached to the most recent record).
+        m = hits[-1]
         try:
             return m.group(0).decode("utf-8", errors="replace")
         except Exception:
@@ -297,8 +322,13 @@ def read_endfield_roles_from_profile(profile: BrowserProfile) -> dict[str, str]:
     if not ldb:
         return {"ENDFIELD_ROLE_ID": "", "ENDFIELD_GAME_ROLE_ID": ""}
 
-    role = _scan_leveldb_dir_for_key(ldb, "APP_CURRENT_ROLE:endfield") or ""
-    game_role = _scan_leveldb_dir_for_key(ldb, "APP_CURRENT_ROLE_GAME_ROLE:endfield") or ""
+    # Search by fragments (LevelDB key contains origin/prefix bytes).
+    role = _scan_leveldb_dir_for_key(ldb, "APP_CURRENT_ROLE:endfield") or _scan_leveldb_dir_for_key(ldb, "APP_CURRENT_ROLE") or ""
+    game_role = (
+        _scan_leveldb_dir_for_key(ldb, "APP_CURRENT_ROLE_GAME_ROLE:endfield")
+        or _scan_leveldb_dir_for_key(ldb, "APP_CURRENT_ROLE_GAME_ROLE")
+        or ""
+    )
 
     # Normalize: keep raw too? Caller can decide; we strip trailing :: for convenience.
     def _strip(v: str) -> str:

@@ -50,6 +50,9 @@ def pick_profile_dir(user_data_dir: Path, preferred: Optional[str]) -> Optional[
 
 def _load_hoyolab_tokens_from_default_profile(browser: str, profile_directory: Optional[str], kill_browser: bool) -> Dict[str, str]:
     prof = find_default_profile(browser, profile_directory)
+    print(f"browser: {prof.name}")
+    print(f"user-data-dir: {prof.user_data_dir}")
+    print(f"profile-directory: {prof.profile_dir}")
     if kill_browser:
         print(f"taskkill: closing {prof.name} to avoid cookie DB lock...")
         taskkill_browser(prof.name)
