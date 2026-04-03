@@ -10,11 +10,17 @@
 `.github/workflows/auto-checkin.yml` の `cron` は現在 `毎日 01:00 JST` です。  
 必要に応じて編集してください。
 
+workflow 名は `Auto Hoyolab Check-in` です。  
+初回 fork 後は `Actions` タブで workflow を有効化してから使ってください。
+
 ## セットアップ
 
 ### 1. リポジトリを fork
 
 GitHub 上で fork して使ってください。
+
+fork 直後は Actions が無効になっている場合があります。  
+その場合は `Actions` タブから有効化してください。
 
 ### 2. Actions Secrets を登録
 
@@ -87,3 +93,10 @@ cookiegrab.exe 5 "C:\\path\\to\\endfield.har" --raw
 3. ログで次を確認
    - HoYoLAB: `retcode -5003` は「本日分取得済み」
    - Endfield: `claimed` または `already-claimed`
+
+## 継続運用メモ
+
+- 定期実行が止まった場合は、まず `Actions` タブで workflow が無効化されていないか確認してください。
+- Secret の値はログイン期限や認証更新で使えなくなることがあります。失敗が続く場合は HAR を取り直して Secret を更新してください。
+- fork 元を更新したい場合は、定期的に upstream の変更を取り込んで workflow や API 変更に追従してください。
+- 実行時刻を変えたい場合は [`.github/workflows/auto-checkin.yml`](c:/Users/hukuc/Documents/RPA_SWR/hoyolab_auto_login/hoyolab_Auto_Login_withGithubActions/.github/workflows/auto-checkin.yml) の `cron` を編集します。
